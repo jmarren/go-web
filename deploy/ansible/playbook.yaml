@@ -1,0 +1,6 @@
+
+- name: My Playbook
+  hosts: playful 
+  become: true
+  tasks:
+    - name: Update apt repo and cache  
