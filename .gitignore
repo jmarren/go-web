@@ -27,3 +27,9 @@ go.work.sum
 ideas.txt
 
 **/*/node_modules
+
+*_templ.go
+
+build/
+
+

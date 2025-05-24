@@ -1,0 +1,10 @@
+package components
+
+import "github.com/jmarren/go-web/internal/models"
+
+templ Home(h *models.HomeData) {
+	<div>
+		<h1>Home</h1>
+		<div>{ h.Username }</div>
+	</div>
+}
