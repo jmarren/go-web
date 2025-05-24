@@ -1,4 +1,7 @@
+
 import htmx from "htmx.org";
+// import extensions
+import "htmx-ext-preload"
 
 (function() {
 	htmx.defineExtension('', {

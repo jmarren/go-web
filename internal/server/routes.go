@@ -21,12 +21,16 @@ func addRoutes(
 	dir := http.Dir("/home/john-marren/templates/go-web/web/public")
 	fs := http.FileServer(dir)
 
+	home := handlers.NewHome()
+
 	mux.Handle("GET /static/", http.StripPrefix("/static", fs))
+	mux.Handle("GET /about", handlers.NewAbout())
+	mux.Handle("GET /home", home)
 	// http.FileServerFS
 
 	// fs := http.FileServer(staticDir)
 	// mux.Handle("GET /static/assets/", http.StripPrefix("/static/assets/", fs))
-	mux.Handle("/", handlers.NewHome())
+	mux.Handle("/", home)
 
 	// mux.Handle("/api/v1/", handleTenantsGet(logger, tenantsStore))
 	// mux.Handle("/oauth2/", handleOAuth2Proxy(logger, authProxy))

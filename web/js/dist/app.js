@@ -4,6 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const htmx_org_1 = __importDefault(require("htmx.org"));
+// import extensions
+require("htmx-ext-preload");
 (function () {
     htmx_org_1.default.defineExtension('', {
         onEvent: function (name, event) {

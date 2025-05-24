@@ -21,6 +21,12 @@ func (p *Page) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// get component for page
 	pageComponent := p.Component.GetComponent(w, r)
 
+	// if it is an HX-request Render the component only
+	if r.Header.Get("HX-Request") == "true" {
+		pageComponent.Render(r.Context(), w)
+		return
+	}
+
 	// render in root
 	components.Root(&models.PageData{
 		Title: p.Title,

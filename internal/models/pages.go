@@ -10,3 +10,6 @@ type PageData struct {
 type HomeData struct {
 	Username string
 }
+
+type AboutData struct {
+}

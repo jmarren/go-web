@@ -24,14 +24,14 @@
   };
   var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-  // node_modules/htmx.org/dist/htmx.esm.js
+  // ../../web/js/node_modules/htmx.org/dist/htmx.esm.js
   var htmx_esm_exports = {};
   __export(htmx_esm_exports, {
     default: () => htmx_esm_default
   });
   var htmx2, htmx_esm_default;
   var init_htmx_esm = __esm({
-    "node_modules/htmx.org/dist/htmx.esm.js"() {
+    "../../web/js/node_modules/htmx.org/dist/htmx.esm.js"() {
       htmx2 = function() {
         "use strict";
         const htmx = {
@@ -3653,14 +3653,242 @@
     }
   });
 
-  // dist/app.js
+  // ../../web/js/node_modules/htmx-ext-preload/dist/preload.esm.js
+  var preload_esm_exports = {};
+  var init_preload_esm = __esm({
+    "../../web/js/node_modules/htmx-ext-preload/dist/preload.esm.js"() {
+      init_htmx_esm();
+      (function() {
+        htmx_esm_default.defineExtension("preload", {
+          onEvent: function(name, event2) {
+            if (name === "htmx:afterProcessNode") {
+              const parent = event2.target || event2.detail.elt;
+              const preloadNodes = [
+                ...parent.hasAttribute("preload") ? [parent] : [],
+                ...parent.querySelectorAll("[preload]")
+              ];
+              preloadNodes.forEach(function(node) {
+                init(node);
+                node.querySelectorAll("[href],[hx-get],[data-hx-get]").forEach(init);
+              });
+              return;
+            }
+            if (name === "htmx:beforeRequest") {
+              const requestHeaders = event2.detail.requestConfig.headers;
+              if (!("HX-Preloaded" in requestHeaders && requestHeaders["HX-Preloaded"] === "true")) {
+                return;
+              }
+              event2.preventDefault();
+              const xhr = event2.detail.xhr;
+              xhr.onload = function() {
+                processResponse(event2.detail.elt, xhr.responseText);
+              };
+              xhr.onerror = null;
+              xhr.onabort = null;
+              xhr.ontimeout = null;
+              xhr.send();
+            }
+          }
+        });
+        function init(node) {
+          if (node.preloadState !== void 0) {
+            return;
+          }
+          if (!isValidNodeForPreloading(node)) {
+            return;
+          }
+          if (node instanceof HTMLFormElement) {
+            const form = node;
+            if (!(form.hasAttribute("method") && form.method === "get" || form.hasAttribute("hx-get") || form.hasAttribute("hx-data-get"))) {
+              return;
+            }
+            for (let i = 0; i < form.elements.length; i++) {
+              const element = form.elements.item(i);
+              init(element);
+              element.labels.forEach(init);
+            }
+            return;
+          }
+          let preloadAttr = getClosestAttribute(node, "preload");
+          node.preloadAlways = preloadAttr && preloadAttr.includes("always");
+          if (node.preloadAlways) {
+            preloadAttr = preloadAttr.replace("always", "").trim();
+          }
+          let triggerEventName = preloadAttr || "mousedown";
+          const needsTimeout = triggerEventName === "mouseover";
+          node.addEventListener(triggerEventName, getEventHandler(node, needsTimeout));
+          if (triggerEventName === "mousedown" || triggerEventName === "mouseover") {
+            node.addEventListener("touchstart", getEventHandler(node));
+          }
+          if (triggerEventName === "mouseover") {
+            node.addEventListener("mouseout", function(evt) {
+              if (evt.target === node && node.preloadState === "TIMEOUT") {
+                node.preloadState = "READY";
+              }
+            });
+          }
+          node.preloadState = "READY";
+          htmx_esm_default.trigger(node, "preload:init");
+        }
+        function getEventHandler(node, needsTimeout = false) {
+          return function() {
+            if (node.preloadState !== "READY") {
+              return;
+            }
+            if (needsTimeout) {
+              node.preloadState = "TIMEOUT";
+              const timeoutMs = 100;
+              window.setTimeout(function() {
+                if (node.preloadState === "TIMEOUT") {
+                  node.preloadState = "READY";
+                  load(node);
+                }
+              }, timeoutMs);
+              return;
+            }
+            load(node);
+          };
+        }
+        function load(node) {
+          if (node.preloadState !== "READY") {
+            return;
+          }
+          node.preloadState = "LOADING";
+          const hxGet = node.getAttribute("hx-get") || node.getAttribute("data-hx-get");
+          if (hxGet) {
+            sendHxGetRequest(hxGet, node);
+            return;
+          }
+          const hxBoost = getClosestAttribute(node, "hx-boost") === "true";
+          if (node.hasAttribute("href")) {
+            const url = node.getAttribute("href");
+            if (hxBoost) {
+              sendHxGetRequest(url, node);
+            } else {
+              sendXmlGetRequest(url, node);
+            }
+            return;
+          }
+          if (isPreloadableFormElement(node)) {
+            const url = node.form.getAttribute("action") || node.form.getAttribute("hx-get") || node.form.getAttribute("data-hx-get");
+            const formData = htmx_esm_default.values(node.form);
+            const isStandardForm = !(node.form.getAttribute("hx-get") || node.form.getAttribute("data-hx-get") || hxBoost);
+            const sendGetRequest = isStandardForm ? sendXmlGetRequest : sendHxGetRequest;
+            if (node.type === "submit") {
+              sendGetRequest(url, node.form, formData);
+              return;
+            }
+            const inputName = node.name || node.control.name;
+            if (node.tagName === "SELECT") {
+              Array.from(node.options).forEach((option) => {
+                if (option.selected) return;
+                formData.set(inputName, option.value);
+                const formDataOrdered2 = forceFormDataInOrder(node.form, formData);
+                sendGetRequest(url, node.form, formDataOrdered2);
+              });
+              return;
+            }
+            const inputType = node.getAttribute("type") || node.control.getAttribute("type");
+            const nodeValue = node.value || node.control?.value;
+            if (inputType === "radio") {
+              formData.set(inputName, nodeValue);
+            } else if (inputType === "checkbox") {
+              const inputValues = formData.getAll(inputName);
+              if (inputValues.includes(nodeValue)) {
+                formData[inputName] = inputValues.filter((value) => value !== nodeValue);
+              } else {
+                formData.append(inputName, nodeValue);
+              }
+            }
+            const formDataOrdered = forceFormDataInOrder(node.form, formData);
+            sendGetRequest(url, node.form, formDataOrdered);
+            return;
+          }
+        }
+        function forceFormDataInOrder(form, formData) {
+          const formElements = form.elements;
+          const orderedFormData = new FormData();
+          for (let i = 0; i < formElements.length; i++) {
+            const element = formElements.item(i);
+            if (formData.has(element.name) && element.tagName === "SELECT") {
+              orderedFormData.append(
+                element.name,
+                formData.get(element.name)
+              );
+              continue;
+            }
+            if (formData.has(element.name) && formData.getAll(element.name).includes(element.value)) {
+              orderedFormData.append(element.name, element.value);
+            }
+          }
+          return orderedFormData;
+        }
+        function sendHxGetRequest(url, sourceNode, formData = void 0) {
+          htmx_esm_default.ajax("GET", url, {
+            source: sourceNode,
+            values: formData,
+            headers: { "HX-Preloaded": "true" }
+          });
+        }
+        function sendXmlGetRequest(url, sourceNode, formData = void 0) {
+          const xhr = new XMLHttpRequest();
+          if (formData) {
+            url += "?" + new URLSearchParams(formData.entries()).toString();
+          }
+          xhr.open("GET", url);
+          xhr.setRequestHeader("HX-Preloaded", "true");
+          xhr.onload = function() {
+            processResponse(sourceNode, xhr.responseText);
+          };
+          xhr.send();
+        }
+        function processResponse(node, responseText) {
+          node.preloadState = node.preloadAlways ? "READY" : "DONE";
+          if (getClosestAttribute(node, "preload-images") === "true") {
+            document.createElement("div").innerHTML = responseText;
+          }
+        }
+        function getClosestAttribute(node, attribute) {
+          if (node == void 0) {
+            return void 0;
+          }
+          return node.getAttribute(attribute) || node.getAttribute("data-" + attribute) || getClosestAttribute(node.parentElement, attribute);
+        }
+        function isValidNodeForPreloading(node) {
+          const getReqAttrs = ["href", "hx-get", "data-hx-get"];
+          const includesGetRequest = (node2) => getReqAttrs.some((a) => node2.hasAttribute(a)) || node2.method === "get";
+          const isPreloadableGetFormElement = node.form instanceof HTMLFormElement && includesGetRequest(node.form) && isPreloadableFormElement(node);
+          if (!includesGetRequest(node) && !isPreloadableGetFormElement) {
+            return false;
+          }
+          if (node instanceof HTMLInputElement && node.closest("label")) {
+            return false;
+          }
+          return true;
+        }
+        function isPreloadableFormElement(node) {
+          if (node instanceof HTMLInputElement || node instanceof HTMLButtonElement) {
+            const type = node.getAttribute("type");
+            return ["checkbox", "radio", "submit"].includes(type);
+          }
+          if (node instanceof HTMLLabelElement) {
+            return node.control && isPreloadableFormElement(node.control);
+          }
+          return node instanceof HTMLSelectElement;
+        }
+      })();
+    }
+  });
+
+  // ../../web/js/dist/app.js
   var require_app = __commonJS({
-    "dist/app.js"(exports) {
+    "../../web/js/dist/app.js"(exports) {
       var __importDefault = exports && exports.__importDefault || function(mod) {
         return mod && mod.__esModule ? mod : { "default": mod };
       };
       Object.defineProperty(exports, "__esModule", { value: true });
       var htmx_org_1 = __importDefault((init_htmx_esm(), __toCommonJS(htmx_esm_exports)));
+      init_preload_esm();
       (function() {
         htmx_org_1.default.defineExtension("", {
           onEvent: function(name, event2) {

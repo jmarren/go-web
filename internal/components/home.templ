@@ -3,8 +3,7 @@ package components
 import "github.com/jmarren/go-web/internal/models"
 
 templ Home(h *models.HomeData) {
-	<div>
-		<h1>Home</h1>
-		<div>{ h.Username }</div>
-	</div>
+	<h1>Home</h1>
+	<button hx-get="/about" hx-target="#page" preload="mouseover" hx-swap="innerHTML">About</button>
+	<div>{ h.Username }</div>
 }

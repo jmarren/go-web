@@ -10,6 +10,13 @@ source ./deploy/cmd.sh
  case "$1" in 
     # run air with all args
     run)
+       npm run build --prefix ./web/js &&
+       cd ./pkg/js-build
+       go run main.go && 
+       cd ../../
+       # go build -o ./pkg/js-build/build/main ./pkg/js-build &&
+       # ./pkg/js-build/build &&
+       templ generate &&
        air $@
       ;;
     # run deploy with all args

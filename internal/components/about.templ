@@ -1,0 +1,9 @@
+
+package components
+
+import "github.com/jmarren/go-web/internal/models"
+
+templ About(a *models.AboutData) {
+	<h1>About</h1>
+	<button hx-get="/home" hx-target="#page" preload="mouseover" hx-swap="innerHTML">Home</button>
+}
