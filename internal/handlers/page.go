@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 
-	// "github.com/a-h/templ"
 	"github.com/a-h/templ"
 	"github.com/jmarren/go-web/internal/components"
 	"github.com/jmarren/go-web/internal/models"
