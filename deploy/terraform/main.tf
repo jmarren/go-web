@@ -18,7 +18,7 @@ data "http" "my_ip" {
 
 
 data "local_file" "playful_pub_key" {
-  filename = "/home/john-marren/.ssh/playful/key1.pub"
+  filename = "${path.cwd}/deploy/keys/key.pub"
 }
 
 

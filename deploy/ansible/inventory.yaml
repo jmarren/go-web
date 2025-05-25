@@ -1,4 +1,4 @@
 ec2:
   hosts:
     playful:
-      ansible_ssh_common_args: '-F /home/john-marren/.ssh/config'
+      ansible_ssh_common_args: '-F ./deploy/sshconfig'

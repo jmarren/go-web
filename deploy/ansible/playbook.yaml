@@ -1,6 +1,57 @@
-
 - name: My Playbook
   hosts: playful 
   become: true
+  roles:
+     - role: gantsign.golang
+       golang_gopath: '$HOME/workspace-go'
   tasks:
-    - name: Update apt repo and cache  
+    - name: Update apt
+      become: true
+      ansible.builtin.apt:
+        upgrade: yes
+        update_cache: yes
+        cache_valid_time: 86400
+
+    - name: Copy App Build
+      ansible.builtin.copy:
+        src: ~/templates/go-web/build/tmp/main
+        dest: /usr/local/bin/app.service
+        mode: u+rwx,g+rx,o-rx
+
+    - name: Copy Unit File
+      template:
+        src: ~/templates/go-web/deploy/ansible/templates/unitfile.j2
+        dest: /lib/systemd/system/app.service
+        owner: bin
+        mode: 0644
+
+    - name: Install NGINX
+      ansible.builtin.include_role:
+        name: nginxinc.nginx
+      vars:
+        nginx_started: false
+        nginx_set: install
+
+    - name: Copy Nginx Config
+      ansible.builtin.copy:
+        src: ~/templates/go-web/deploy/nginx.conf
+        dest: /etc/nginx/conf.d/default.conf
+        mode: '744'
+        owner: ubuntu
+
+    - name: Reload nginx
+      ansible.builtin.systemd_service:
+        name: nginx
+        state: reloaded
+
+    - name: Start nginx
+      ansible.builtin.systemd_service:
+        name: nginx
+        state: started
+
+    - name: Start Loop Service
+      ansible.builtin.systemd_service:
+        name: app
+        state: started
+        enabled: true
+

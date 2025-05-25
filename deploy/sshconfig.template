@@ -1,0 +1,6 @@
+Host playful
+	HostName $PLAYFUL_IP
+	User ubuntu
+	IdentityFile $PWD/deploy/keys/key
+	StrictHostKeyChecking no
+
