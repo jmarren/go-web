@@ -34,4 +34,8 @@ build/
 
 keys/
 
-sshconfig
+ssh
+
+vars.yaml
+
+

@@ -7,6 +7,7 @@ myapp () {
 # source deploy script
 source ./deploy/cmd.sh
 
+# handle argument 1
  case "$1" in 
     # run air with all args
     run)
@@ -23,9 +24,9 @@ source ./deploy/cmd.sh
        # run app with air
        air $@
       ;;
-    # connect to instance
+    # connect to instance with name $2
     connect)
-      ssh $2 -F ./deploy/sshconfig
+      ssh $2 -F ./deploy/ansible/ssh/$2.ssh
       ;;
     # run deploy with all args
     deploy)

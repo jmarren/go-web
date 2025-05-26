@@ -1,0 +1,5 @@
+Host app
+	HostName $APP_SERVER_IP
+	User ubuntu
+	IdentityFile $PWD/deploy/keys/key
+	StrictHostKeyChecking no

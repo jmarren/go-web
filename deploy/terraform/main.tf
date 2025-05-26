@@ -17,7 +17,7 @@ data "http" "my_ip" {
 }
 
 
-data "local_file" "playful_pub_key" {
+data "local_file" "public_key" {
   filename = "${path.cwd}/deploy/keys/key.pub"
 }
 

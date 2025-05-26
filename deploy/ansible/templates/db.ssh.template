@@ -1,6 +1,5 @@
-Host playful
-	HostName $PLAYFUL_IP
+Host db
+	HostName $DB_SERVER_IP
 	User ubuntu
 	IdentityFile $PWD/deploy/keys/key
 	StrictHostKeyChecking no
-

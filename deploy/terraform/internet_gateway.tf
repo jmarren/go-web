@@ -1,8 +1,8 @@
 
-resource "aws_internet_gateway" "playful_igw" {
-  vpc_id = aws_vpc.playful_vpc.id
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.vpc.id
 
   tags = {
-    Name = "playful_igw"
+    Name = "${var.app_name}_igw"
   }
 }

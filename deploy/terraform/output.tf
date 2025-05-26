@@ -1,10 +1,10 @@
-
-output "playful_1_instance_ip" {
-  description = "ip address of playful 1 instance"
-  value       = aws_instance.playful_1_instance.public_ip
+output "app_server_ip" {
+  description = "ip address of app server instance"
+  value       = aws_instance.app_server.public_ip
 }
 
-# output "ssh_key_content" {
-#   value = data.local_file.playful_pub_key.content
-# }
-#
+output "db_server_ip" {
+  description = "ip address of db server instance"
+  value       = aws_instance.db_server.public_ip
+}
+

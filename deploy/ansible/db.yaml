@@ -1,0 +1,94 @@
+---
+- hosts: db
+  become: yes
+
+  vars_files:
+    - vars.yaml
+
+    # NOTES ---------------------------------------------------------
+      # connect to database by first switching to postgres user:
+
+         # sudo -iu postgres
+
+      # then connect to 'mydb' 
+
+         # psql mydb
+
+    # ----------------------------------------------------------------
+
+  tasks:
+    - name: Update apt
+      become: true
+      ansible.builtin.apt:
+        upgrade: yes
+        update_cache: yes
+        cache_valid_time: 86400
+
+    - name: Install Postgres packages
+      ansible.builtin.apt:
+        pkg:
+        # postgres itself
+        # https://www.postgresql.org/download/linux/ubuntu/
+        - postgresql
+
+        # postgresql-client provides extra client functionality like psql and pg_dump
+        # https://www.postgresql.org/docs/current/reference-client.html
+        - postgresql-client
+
+        # postgresql-contrib provides porting tools, analysis utilities, and plug-in features 
+        # that are not part of the core PostgreSQL system.
+        # https://www.postgresql.org/docs/current/contrib.html
+        # I will be needing uuid-ossp and possibly other plugins
+        - postgresql-contrib
+
+        # postgres-common provides a way to manage 
+        # multiple versions of postgres at the same time 
+        # https://packages.debian.org/sid/postgresql-common
+        #
+        # (skipping for now)
+        # - postgresql-common
+        
+        # required dependencies for ansible postgres modules
+        - python3-psycopg2
+        - libpq-dev
+
+    - name: Create a new database with name and password from var file
+      become: true
+      become_user: postgres
+      community.postgresql.postgresql_db:
+        name: "{{ db_name }}"
+        login_password: "{{ db_password }}"
+
+        # TODO: LIMIT TO NECESSARY IPs
+    - name: Allow external connections
+      become: true
+      become_user: postgres
+      community.postgresql.postgresql_pg_hba:
+        dest: /etc/postgresql/16/main/pg_hba.conf
+        contype: host
+        users: all
+        source: all
+        databases: "{{ db_name }}"
+
+
+    - name: Set listen_addresses
+      become: true
+      become_user: postgres
+      community.postgresql.postgresql_alter_system:
+        param: listen_addresses
+        value: "*"
+
+    - name: Set postgres password
+      become: true
+      become_user: postgres
+      community.postgresql.postgresql_user:
+        login_db: "{{ db_name }}"
+        name: postgres
+        password: "{{ db_password }}"
+
+
+    - name: restart postgres
+      service: 
+        name: postgresql
+        state: restarted
+

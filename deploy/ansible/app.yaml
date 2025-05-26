@@ -1,5 +1,5 @@
-- name: My Playbook
-  hosts: playful 
+- name: App Playbook
+  hosts: app 
   become: true
   roles:
      - role: gantsign.golang
