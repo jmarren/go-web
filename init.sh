@@ -1,4 +1,4 @@
-# #!/bin/bash
+#!/bin/bash
 
 # I prefer to use a bash script to initialize a cli
 # in order to prevent polluting my PATH

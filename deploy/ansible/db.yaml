@@ -1,5 +1,5 @@
 ---
-- hosts: db
+- hosts: devdb
   become: yes
 
   vars_files:
@@ -52,6 +52,12 @@
         - python3-psycopg2
         - libpq-dev
 
+    - name: enabling postgresql services
+      service:
+        name: postgresql
+        state: started
+        enabled: yes
+
     - name: Create a new database with name and password from var file
       become: true
       become_user: postgres
@@ -77,6 +83,7 @@
       community.postgresql.postgresql_alter_system:
         param: listen_addresses
         value: "*"
+        # value: "localhost,{{ my_ip }}"
 
     - name: Set postgres password
       become: true

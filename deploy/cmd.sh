@@ -1,7 +1,8 @@
 # #!/bin/bash
 deploy () {
+    shift
 
- case "$2" in 
+ case "$1" in 
     # run air with all args
     apply)
 	# apply terraform config
@@ -22,10 +23,16 @@ deploy () {
 	
 	;;
     destroy)
-	terraform -chdir=./deploy/terraform destroy -auto-approve
+	terraform -chdir=./deploy/terraform destroy --auto-approve
 	;;
-
-
+    ans) 
+	source ./deploy/ansible/cmd.sh
+	ans "$@"
+	;;
+    *)
+	echo "command '$1' not found"
+	echo "usage:  deploy [ apply | destroy ]"
+	;;
 esac
 
 	

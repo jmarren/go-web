@@ -1,0 +1,67 @@
+
+# PORT MAPPING = HOST:CONTAINER
+services:
+
+  db_service:
+    build: 
+      context: ./internal/db
+    ports: 
+      - ${DB_PORT}:5432
+      - 200:22
+    volumes:
+      - ./deploy/keys/key.pub:/etc/ssh/key.pub
+
+
+
+    # command: "sudo apt-get install openssh-server"
+    # entrypoint: "/home/init.sh"
+    # entrypoint: "tail -f /dev/null"
+    # volumes:
+    #   - ./keep-ubuntu.sh:/home/init.sh
+
+    # command: ["tail",  "-f", "/dev/null"  ]
+   # shm_size: 128mb
+    # environment:
+    #   POSTGRES_PASSWORD: ${DB_PASSWORD}
+    #   POSTGRES_USER: "${DB_USERNAME}"
+    #   POSTGRES_DB: ${DB_NAME}
+    #   PGUSER: ${DB_USERNAME}
+    # healthcheck:
+    #   test: ["CMD-SHELL", "pg_isready", "-d", "${DB_NAME}", "-h", "127.0.0.1"]
+    #   interval: 30s
+    #   timeout: 60s
+    #   retries: 5
+    #   start_period: 80s
+    # command: [ "apt", "install",  "openssh-server"]
+    # volumes:
+    #  - ../internal/db/schema.sql:/docker-entrypoint-initdb.d/
+     # - ./scripts/dump-db.sh:/docker-entrypoint-initdb.d/init.sh
+
+
+
+
+  # db_service:
+  #   # build: 
+  #     # context: ./db
+  #   image: postgres:16
+  #   restart: unless-stopped
+  #   ports: 
+  #     - ${DB_PORT}:5432
+  #     - 200:22
+  #   shm_size: 128mb
+  #   environment:
+  #     POSTGRES_PASSWORD: ${DB_PASSWORD}
+  #     POSTGRES_USER: "${DB_USERNAME}"
+  #     POSTGRES_DB: ${DB_NAME}
+  #     PGUSER: ${DB_USERNAME}
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready", "-d", "${DB_NAME}", "-h", "127.0.0.1"]
+  #     interval: 30s
+  #     timeout: 60s
+  #     retries: 5
+  #     start_period: 80s
+  #   command: [ "apt", "install",  "openssh-server"]
+  #   volumes:
+  #    - ../internal/db/schema.sql:/docker-entrypoint-initdb.d/
+  #    # - ./scripts/dump-db.sh:/docker-entrypoint-initdb.d/init.sh
+  #

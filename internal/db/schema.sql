@@ -1,5 +1,6 @@
-CREATE DATABASE IF NOT EXISTS mydb;
-
-CREATE ROLE john WITH LOGIN PASSWORD 'banana';
 
 
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
+    username VARCHAR(20) UNIQUE NOT NULL
+);
