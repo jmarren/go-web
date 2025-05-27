@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	pgconn "github.com/jackc/pgx/v5/pgconn"
-	_ "github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jmarren/go-web/internal/db/query"
 )
@@ -32,12 +30,4 @@ func Init(ctx context.Context) error {
 
 	fmt.Printf("database initialized successfully\n")
 	return nil
-}
-
-func ErrorCode(err error) (string, bool) {
-	pgerr, ok := err.(*pgconn.PgError)
-	if !ok {
-		return "", false
-	}
-	return pgerr.Code, true
 }

@@ -1,4 +1,4 @@
-# #!/bin/bash
+#!/bin/bash
 deploy () {
     shift
 
@@ -34,6 +34,10 @@ deploy () {
 	echo "usage:  deploy [ apply | destroy ]"
 	;;
 esac
-
-	
 }
+
+
+
+
+
+

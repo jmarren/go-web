@@ -8,7 +8,12 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Post struct {
+	ID int32
+}
+
 type User struct {
 	ID       pgtype.UUID
 	Username string
+	Birthday pgtype.Text
 }

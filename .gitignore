@@ -42,3 +42,5 @@ dist
 
 web/public
 
+*.sql.go
+

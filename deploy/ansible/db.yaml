@@ -90,22 +90,6 @@
         state: restore
         target: "/var/data/schema.sql"
 
-    # - name: Run schema.sql file
-    #   become: true
-    #   become_user: postgres
-    #   community.postgresql.postgresql_query:
-    #     login_db: "{{ db_name }}"
-    #     login_password: "{{ db_password }}"
-    #     path_to_script: /var/data/schema.sql
-
-# - name: Run queries from SQL script
-#   postgresql_query:
-#     db: test_db
-#     path_to_script: /var/lib/pgsql/test.sql
-#     positional_args:
-#     - 1
-
-
         # TODO: LIMIT TO NECESSARY IPs
     - name: Allow external connections
       become: true
