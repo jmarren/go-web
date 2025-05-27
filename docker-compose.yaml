@@ -1,15 +1,23 @@
-
 # PORT MAPPING = HOST:CONTAINER
 services:
 
   db_service:
     build: 
-      context: ./internal/db
+      dockerfile: ./deploy/docker/devdb.Dockerfile
     ports: 
       - ${DB_PORT}:5432
       - 200:22
-    volumes:
-      - ./deploy/keys/key.pub:/etc/ssh/key.pub
+    # volumes:
+    #   - ./deploy/keys/key.pub:/etc/ssh/key.pub
+
+
+  app_service:
+    build: 
+      dockerfile: ./deploy/docker/devapp.Dockerfile
+    ports: 
+      - 201:22
+    # volumes:
+    #   - ./deploy/keys/key.pub:/etc/ssh/key.pub
 
 
 

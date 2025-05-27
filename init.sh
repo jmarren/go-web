@@ -28,6 +28,10 @@ source ./deploy/cmd.sh
     connect)
       ssh $2 -F ./deploy/ansible/ssh/$2.ssh
       ;;
+	  #  connect-dev)
+	  #     case "$2" in
+	  # app)
+	  #     ssh test@127.0.0.1 -p 
     # run deploy with all args
     deploy)
 	deploy $@

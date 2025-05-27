@@ -1,13 +1,24 @@
-ec2:
+prod:
   hosts:
-     app:
-      ansible_ssh_common_args: '-F ./deploy/ansible/ssh/app.ssh'
-     db:
-      ansible_ssh_common_args: '-F ./deploy/ansible/ssh/db.ssh'
-     devdb:
-      ansible_become_password: test
-      ansible_connection: ssh
-      ansible_user: test
-      ansible_ssh_pass: test
-      ansible_port: 200
-      ansible_host: 127.0.0.1
+   app:
+    ansible_ssh_common_args: '-F ./deploy/ansible/ssh/app.ssh'
+   db:
+    ansible_ssh_common_args: '-F ./deploy/ansible/ssh/db.ssh'
+dev:
+  hosts:
+   devdb:
+    ansible_become_password: test
+    ansible_connection: ssh
+    ansible_user: test
+    ansible_ssh_pass: test
+    ansible_port: 200
+    ansible_host: 127.0.0.1
+   devapp: 
+    ansible_become_password: test
+    ansible_connection: ssh
+    ansible_user: test
+    ansible_ssh_pass: test
+    ansible_port: 201
+    ansible_host: 127.0.0.1
+
+    
