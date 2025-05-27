@@ -18,6 +18,9 @@ function connect () {
 	  devpsql) 
 	      psql -U postgres -h 127.0.0.1 -d db1
 	      ;;
+	  p)
+	      cat ./sh/connect/cmd.sh
+	      ;;
 	  *)
 	    echo "command '$2' not found. Expected [ app | db | devapp | devdb | devpsql ]"
 	    ;;

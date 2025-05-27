@@ -2,7 +2,6 @@
 
 cmd () {
 
-# handle argument 1
  case "$1" in 
     run)
      source ./sh/run/cmd.sh
@@ -20,25 +19,15 @@ cmd () {
       source ./sh/play/cmd.sh
       play "$@"
       ;;
-    *)
+     ping)
+      ansible all -m ping -i ./deploy/ansible/inventory.yaml
+      ;;
+     p)
+      cat ./sh/cmd.sh
+      ;;
+      *)
       echo "command '$1' not found. Expected myapp [run | deploy]"
       ;;
   esac
-}
-
-
-
-
-compile-sql () {
-
-   find ./internal/db/migrations -maxdepth 1 -mindepth 1 -type f -printf '%f\n'
-
-	  #
-	  #  for file in /internal/db/migrations/*/     # list directories in the form "/tmp/dirname/"
-	  #    do
-	  # dir=${dir%*/}      # remove the trailing "/"
-	  # echo "${dir##*/}"    # print everything after the final "/"
-	  #    done
-
 }
 

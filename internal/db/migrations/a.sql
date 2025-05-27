@@ -1,4 +1,3 @@
-
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid (),
     username VARCHAR(20) UNIQUE NOT NULL
@@ -6,4 +5,4 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS posts(
     id SERIAL PRIMARY KEY NOT NULL
-)
+);

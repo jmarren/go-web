@@ -15,6 +15,9 @@ deploy () {
 	source ./deploy/ansible/cmd.sh
 	ans "$@"
 	;;
+    p)
+	cat ./sh/deploy/cmd.sh
+	;;
     *)
 	echo "command '$1' not found"
 	echo "usage:  deploy [ apply | destroy ]"

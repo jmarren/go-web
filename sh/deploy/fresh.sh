@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Creates a fresh deployment
 fresh () {
     # apply terraform config
     terraform -chdir=./deploy/terraform apply -auto-approve &&
