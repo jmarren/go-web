@@ -22,16 +22,15 @@ source ./deploy/cmd.sh
        # generate templates
        templ generate &&
        # run app with air
-       air $@
+       air -- -env="$2" 
       ;;
     # connect to instance with name $2
     connect)
       ssh $2 -F ./deploy/ansible/ssh/$2.ssh
       ;;
-	  #  connect-dev)
-	  #     case "$2" in
-	  # app)
-	  #     ssh test@127.0.0.1 -p 
+    connectdev)
+       connectdev $@
+   ;;
     # run deploy with all args
     deploy)
 	deploy $@
@@ -40,4 +39,24 @@ source ./deploy/cmd.sh
       echo "command '$1' not found. Expected myapp [run | deploy]"
       ;;
   esac
+}
+
+
+function connectdev () {
+   shift 
+      case "$1" in
+	  app)
+	      ssh test@127.0.0.1 -p 201
+	       ;;
+	  db)
+	      ssh test@127.0.0.1 -p 200
+	      ;;
+	  dbpsql) 
+	      psql -U postgres -h 127.0.0.1 -d db1
+	      ;;
+	  *)
+	    echo "command '$2' not found. Expected [ app | db | dbpsql ]"
+	    ;;
+	   esac
+
 }

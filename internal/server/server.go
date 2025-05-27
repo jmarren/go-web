@@ -10,16 +10,22 @@ import (
 	"time"
 
 	"github.com/jmarren/go-web/config"
+	"github.com/jmarren/go-web/internal/db"
 )
 
 type Server struct {
 	*http.Server
 }
 
-func New() error {
+func New(ctx context.Context) error {
 
 	// create ServeMux
 	mux := http.NewServeMux()
+
+	err := db.Init(ctx)
+	if err != nil {
+		panic(err)
+	}
 
 	// add routes
 	addRoutes(mux)
@@ -45,7 +51,7 @@ func New() error {
 	wg.Add(1)
 
 	// create context
-	ctx := context.Background()
+	// ctx := context.Background()
 
 	// spin off routine to handle shutdown
 	go func() {

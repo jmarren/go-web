@@ -65,6 +65,47 @@
         name: "{{ db_name }}"
         login_password: "{{ db_password }}"
 
+    - name: Create a directory if it does not exist
+      become: true
+      ansible.builtin.file:
+        path: /var/data
+        state: directory
+        owner: postgres
+        # mode: '0755'
+
+
+    - name: Copy schema.sql file
+      become: true
+      ansible.builtin.copy:
+        src: ~/templates/go-web/internal/db/schema.sql
+        dest: /var/data/schema.sql
+        owner: postgres
+ 
+
+    - name: Run schema.sql script
+      become: true
+      become_user: postgres
+      postgresql_db:
+        db: "{{ db_name }}"
+        state: restore
+        target: "/var/data/schema.sql"
+
+    # - name: Run schema.sql file
+    #   become: true
+    #   become_user: postgres
+    #   community.postgresql.postgresql_query:
+    #     login_db: "{{ db_name }}"
+    #     login_password: "{{ db_password }}"
+    #     path_to_script: /var/data/schema.sql
+
+# - name: Run queries from SQL script
+#   postgresql_query:
+#     db: test_db
+#     path_to_script: /var/lib/pgsql/test.sql
+#     positional_args:
+#     - 1
+
+
         # TODO: LIMIT TO NECESSARY IPs
     - name: Allow external connections
       become: true
