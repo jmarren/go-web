@@ -29,9 +29,6 @@ func MakeTable() *tview.Table {
 	Table.SetBackgroundColor(tcell.ColorBlack)
 	Table.SetBorder(true).SetBorderColor(tcell.ColorWhite).SetTitle(" Instances ")
 	Table.SetBorderPadding(1, 1, 2, 2)
-	Table.SetFocusFunc(func() {
-		fmt.Printf("hi")
-	})
 	Table.SetSelectionChangedFunc(func(row, column int) {
 		fmt.Printf("row %d col %d selected\n", row, column)
 	})

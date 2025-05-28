@@ -1,11 +1,16 @@
 package tui
 
 import (
+	// "log"
+	"fmt"
+	// "os/exec"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
 
 type MyTable struct {
+	writes string
 	*tview.Table
 	data     [][]string
 	selected *Cell
@@ -81,3 +86,18 @@ func (t *MyTable) MoveDown() {
 		t.selected.MoveDown()
 	}
 }
+
+func (t *MyTable) Write(p []byte) (int, error) {
+	t.data[0][0] = string(p)
+	fmt.Printf("%s", string(p))
+	return 1, nil
+}
+
+// func (t *MyTable) handleEnter() {
+// 	cmd := exec.Command("myapp", "p")
+// 	cmd.Stdout = t
+// 	err := cmd.Run()
+// 	if err != nil {
+// 		fmt.Printf("error: %s\n", err)
+// 	}
+// }
