@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"io"
 	"os/exec"
 
 	"github.com/gdamore/tcell/v2"
@@ -17,23 +18,41 @@ type App struct {
 	InnerLeft *MyGrid
 	SshWrites string
 	SshText   *tview.TextArea
+	SshOpen   bool
+	InPipe    io.WriteCloser
+	OutPipe   io.ReadCloser
+	cmd       *exec.Cmd
 }
 
-type MyWriter struct{}
-
-// Write(p []byte) (n int, err error)
-
-func (w *MyWriter) Write(p []byte) (int, error) {
-	fmt.Printf("p: %s\n", string(p))
-	return len(p), nil
-}
+// type MyWriter struct{}
+//
+// // Write(p []byte) (n int, err error)
+//
+// func (w *MyWriter) Write(p []byte) (int, error) {
+// 	fmt.Printf("p: %s\n", string(p))
+// 	return len(p), nil
+// }
 
 var MyApp *App
 
 func Create(initial *App) *App {
 
 	MyApp = initial
+	MyApp.SshOpen = false
+	MyApp.SshWrites = ""
+	MyApp.cmd = exec.Command("myapp", "connect", "devdb")
 
+	// // capture outpipe
+	// outPipe, err := cmd.StdoutPipe()
+	// if err != nil {
+	// 	fmt.Printf("error: %s \n", err)
+	// }
+	// // capture in pipe
+	// inPipe, err := cmd.StdinPipe()
+	// if err != nil {
+	// 	fmt.Printf("error: %s \n", err)
+	// }
+	//
 	MyApp.CreateSshTextArea()
 
 	MyApp.CreateInnerLeft()
@@ -44,38 +63,169 @@ func Create(initial *App) *App {
 
 	MyApp.SetRoot(MyApp.Layout, true).SetFocus(MyApp.Layout)
 
-	MyApp.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEnter {
-			MyApp.Suspend(func() {
-				go func() {
-					cmd := exec.Command("myapp", "connect", "devdb")
-					cmd.Stdout = MyApp
-					cmd.Stderr = MyApp
-					cmd.Stdin = MyApp
-					err := cmd.Run()
-					if err != nil {
-						fmt.Printf("error: %s \n", err)
-					}
-				}()
-			})
-		} else {
-			MyApp.Read([]byte{byte(event.Rune())})
-		}
-		return event
-	})
+	MyApp.SetInputCapture(MyApp.CaptureInput)
 
 	return MyApp
-
 }
 
 func (a *App) Write(p []byte) (int, error) {
-	MyApp.SshWrites += string(p)
-	a.SshText.SetText(MyApp.SshWrites, true)
+	a.SshWrites += string(p)
+	a.SshText.SetText(a.SshWrites, true)
+	a.SetFocus(a.SshText)
 	return len(p), nil
 }
 
 func (a *App) Read(p []byte) (n int, err error) {
-	return 0, nil
+	// a.SshWrites += string(p)
+	// a.SshText.SetText(a.SshWrites, true)
+	// a.SetFocus(a.SshText)
+	return len(p), nil
+}
+func (a *App) Close() error {
+
+	return nil
+}
+
+func (a *App) CaptureInput(event *tcell.EventKey) *tcell.EventKey {
+
+	if event.Key() == tcell.KeyCtrlA {
+		// if ssh is not open, open
+		if !a.SshOpen {
+			a.SshOpen = true
+
+			a.Suspend(func() {
+				go func() {
+					err := a.cmd.Start()
+					if err != nil {
+						fmt.Println(err.Error())
+						return
+					}
+					a.cmd.Stdout = a
+					a.cmd.Stdin = a
+					a.cmd.Wait()
+					_, err = io.ReadAll(a)
+					if err != nil {
+						fmt.Println(err.Error())
+					}
+					// inpipe, err := a.cmd.StdinPipe()
+					// if err != nil {
+					// 	fmt.Println(err.Error())
+					// }
+					// a.InPipe = inpipe
+					// io.ReadAll(a.OutPipe)
+					// a.cmd.Stdout = a
+					// a.cmd.Wait()
+				}()
+			})
+		}
+		return event
+	}
+
+	// if event.Key() == tcell.KeyEnter && a.SshOpen {
+	// 	a.cmd.Wait()
+	// 	_, err := io.ReadAll(a)
+	// 	if err != nil {
+	// 		fmt.Println(err.Error())
+	// 	}
+	// 	a.Close()
+	// 	// a.Write(output)
+	// 	// a.
+	// }
+
+	if a.SshOpen {
+		// inpipe := a.cmd.Stdin
+		n, err := a.Read([]byte{byte(event.Rune())})
+		// n, err := a.Write()
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		fmt.Printf("wrote %d bytes\n", n)
+		return event
+	}
+
+	return event
+}
+
+/*
+
+	if event.Key() == tcell.KeyEnter && !a.SshOpen {
+		a.SshOpen = true
+		MyApp.Suspend(func() {
+			go func() {
+				cmd := exec.Command("myapp", "connect", "devdb")
+				cmd.Stdout = MyApp
+				cmd.Stderr = MyApp
+				cmd.Stdin = MyApp
+				err := cmd.Run()
+				if err != nil {
+					fmt.Printf("error: %s \n", err)
+				}
+			}()
+		})
+		return event
+	}
+	if a.SshOpen {
+		MyApp.Read([]byte{byte(event.Rune())})
+	}
+	return event
+}
+
+/*
+
+	if event.Key() == tcell.KeyCtrlA {
+		// if ssh is not open, open
+		if !a.SshOpen {
+			a.SshOpen = true
+
+			a.Suspend(func() {
+				err := a.cmd.Start()
+				if err != nil {
+					fmt.Println(err.Error())
+					return
+				}
+				a.cmd.Stdout = a
+				a.cmd.Stdin = a
+				a.cmd.Wait()
+				_, err = io.ReadAll(a)
+				if err != nil {
+					fmt.Println(err.Error())
+				}
+				// inpipe, err := a.cmd.StdinPipe()
+				// if err != nil {
+				// 	fmt.Println(err.Error())
+				// }
+				// a.InPipe = inpipe
+				// io.ReadAll(a.OutPipe)
+				// a.cmd.Stdout = a
+				// a.cmd.Wait()
+			})
+		}
+		return event
+	}
+
+	// if event.Key() == tcell.KeyEnter && a.SshOpen {
+	// 	a.cmd.Wait()
+	// 	_, err := io.ReadAll(a)
+	// 	if err != nil {
+	// 		fmt.Println(err.Error())
+	// 	}
+	// 	a.Close()
+	// 	// a.Write(output)
+	// 	// a.
+	// }
+
+	if a.SshOpen {
+		// inpipe := a.cmd.Stdin
+		n, err := a.Read([]byte{byte(event.Rune())})
+		// n, err := a.Write()
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		fmt.Printf("wrote %d bytes\n", n)
+		return event
+	}
+
+	return event
 }
 
 // Read(p []byte) (n int, err error)
@@ -149,3 +299,12 @@ func (a *App) Read(p []byte) (n int, err error) {
 	fmt.Printf("output: %s \n", output)
 	MyApp.Unlock()
 */
+// output, err := io.ReadAll(outPipe)
+// MyApp.Write(output)
+// cmd.Stdout = MyApp
+// cmd.Stdin = MyApp
+// err = cmd.Run()
+// if err != nil {
+// 	fmt.Printf("error: %s \n", err)
+// }
+// }()
