@@ -3,17 +3,18 @@
 run () {
   shift
        # build app.ts
-       npm run build --prefix ./web/js &&
-       # cd into js-build
-       cd ./pkg/js-build
-       # run js-build to bundle up app.js and extensions into <root>/web/public/index.js
-       go run main.go && 
-       # cd back
-       cd ../../
+       npm run build --prefix $MYAPP_DIR/web/js && 
+
+       # cd into app root directory
+       cd $MYAPP_DIR
+
+       # run js build
+       go run ./cmd/js-build
+
        # generate templ files
-       templ generate &&
+       templ generate -path $MYAPP_DIR &&
        # generate sqlc
-       sqlc generate -f ./internal/db/sqlc.yaml &&
+       sqlc generate -f $MYAPP_DIR/internal/db/sqlc.yaml &&
        # run app with air
        air -- -env="$1" 
 

@@ -4,8 +4,10 @@
 # in order to prevent polluting my PATH
 myapp () {
 
+export MYAPP_DIR="/home/john-marren/templates/go-web"
+
 # source main script
-source ./sh/cmd.sh
+source $MYAPP_DIR/sh/cmd.sh
 
 cmd "$@"
 
