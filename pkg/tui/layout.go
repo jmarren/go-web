@@ -132,6 +132,7 @@ func (a *App) CreateInnerLeft() {
 }
 
 func (a *App) CreateSshTextArea() {
+	// tv := tview.NewTextView()
 	ta := tview.NewTextArea()
 	ta.SetText("laldksfji", true)
 	a.SshText = ta

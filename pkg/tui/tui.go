@@ -3,56 +3,42 @@ package tui
 import (
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
+	"strings"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
-
-// var Tui *tview.Application
 
 type App struct {
 	*tview.Application
 	Layout    *MyGrid
 	InnerGrid *MyGrid
 	InnerLeft *MyGrid
-	SshWrites string
+	SshWrites *strings.Builder
 	SshText   *tview.TextArea
 	SshOpen   bool
 	InPipe    io.WriteCloser
 	OutPipe   io.ReadCloser
 	cmd       *exec.Cmd
+	cmdStack  []byte
 }
 
-// type MyWriter struct{}
-//
-// // Write(p []byte) (n int, err error)
-//
-// func (w *MyWriter) Write(p []byte) (int, error) {
-// 	fmt.Printf("p: %s\n", string(p))
-// 	return len(p), nil
-// }
+func Create() *App {
+	MyApp := &App{
+		Application: tview.NewApplication(),
+		Layout:      NewMyGrid(),
+		InnerGrid:   NewMyGrid(),
+		InnerLeft:   NewMyGrid(),
+		SshWrites:   new(strings.Builder),
+		SshOpen:     false,
+		cmd:         exec.Command("myapp", "connect", "devdb"),
+	}
 
-var MyApp *App
+	MyApp.cmd.Stdout = MyApp.SshWrites
 
-func Create(initial *App) *App {
-
-	MyApp = initial
-	MyApp.SshOpen = false
-	MyApp.SshWrites = ""
-	MyApp.cmd = exec.Command("myapp", "connect", "devdb")
-
-	// // capture outpipe
-	// outPipe, err := cmd.StdoutPipe()
-	// if err != nil {
-	// 	fmt.Printf("error: %s \n", err)
-	// }
-	// // capture in pipe
-	// inPipe, err := cmd.StdinPipe()
-	// if err != nil {
-	// 	fmt.Printf("error: %s \n", err)
-	// }
-	//
 	MyApp.CreateSshTextArea()
 
 	MyApp.CreateInnerLeft()
@@ -69,43 +55,57 @@ func Create(initial *App) *App {
 		if event.Key() == tcell.KeyEnter && !sshopen {
 			sshopen = true
 			MyApp.Suspend(func() {
+
 				go func() {
-					cmd := exec.Command("myapp", "connect", "devdb")
-					cmd.Stdout = MyApp
-					cmd.Stderr = MyApp
-					cmd.Stdin = MyApp
+					cmd := MyApp.cmd
+					cmd.Stdout = MyApp.SshWrites
+					cmd.Stdin = os.Stdin
 					err := cmd.Run()
 					if err != nil {
 						fmt.Printf("error: %s \n", err)
 					}
 				}()
+				return
 			})
 			return event
 		}
-		// if MyApp.SshOpen {
-		// 	MyApp.Read([]byte{byte(event.Rune())})
-		// }
+		if MyApp.SshOpen {
+			MyApp.Read([]byte{byte(event.Rune())})
+		}
 		return event
 	})
+
+	MyApp.Tick()
 
 	return MyApp
 }
 
+func (a *App) Tick() {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				text := a.SshWrites.String()
+				a.SshText.SetText(text, true)
+				a.SetFocus(a.SshText)
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+}
+
 func (a *App) Write(p []byte) (int, error) {
-	a.SshWrites += string(p)
-	a.SshText.SetText(a.SshWrites, true)
-	a.SetFocus(a.SshText)
-	return 0, nil
+	return len(p), nil
 }
 
 func (a *App) Read(p []byte) (n int, err error) {
-	// a.SshWrites += string(p)
-	// a.SshText.SetText(a.SshWrites, true)
-	// a.SetFocus(a.SshText)
-	return 0, nil
+	return len(p), nil
 }
 func (a *App) Close() error {
-
 	return nil
 }
 
@@ -330,3 +330,53 @@ func (a *App) Close() error {
 // 	fmt.Printf("error: %s \n", err)
 // }
 // }()
+// // capture outpipe
+// outPipe, err := cmd.StdoutPipe()
+// if err != nil {
+// 	fmt.Printf("error: %s \n", err)
+// }
+// // capture in pipe
+// inPipe, err := cmd.StdinPipe()
+// if err != nil {
+// 	fmt.Printf("error: %s \n", err)
+// }
+//
+// var text strings.Builder
+
+// type MyWriter struct{}
+//
+// // Write(p []byte) (n int, err error)
+//
+// func (w *MyWriter) Write(p []byte) (int, error) {
+// 	fmt.Printf("p: %s\n", string(p))
+// 	return len(p), nil
+// }
+
+// var MyApp *App
+//
+// MyApp := &tui.App{
+// 	Application: tview.NewApplication(),
+// 	Layout:      tui.NewMyGrid(),
+// 	InnerGrid:   tui.NewMyGrid(),
+// 	InnerLeft:   tui.NewMyGrid(),
+// 	SshWrites:   "",
+// }
+
+// if event.Key() == tcell.KeyEnter {
+// 	fmt.Printf("cmdStack: %s\n", string(MyApp.cmdStack))
+// 	MyApp.cmdStack = []byte{}
+// 	cmds := strings.Split(string(MyApp.cmdStack), " ")
+// 	// MyApp.cmd = exec.Command(cmds[0], cmds[1:]...)
+// 	MyApp.Suspend(func() {
+// 		go func() {
+// 			cmd := exec.Command(cmds[0], cmds[1:]...)
+// 			cmd.Stdout = MyApp
+// 			cmd.Stderr = MyApp
+// 			cmd.Stdin = MyApp
+// 			err := cmd.Run()
+// 			if err != nil {
+// 				fmt.Printf("error: %s \n", err)
+// 			}
+// 		}()
+// 	})
+// }
