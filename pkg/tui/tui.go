@@ -63,7 +63,30 @@ func Create(initial *App) *App {
 
 	MyApp.SetRoot(MyApp.Layout, true).SetFocus(MyApp.Layout)
 
-	MyApp.SetInputCapture(MyApp.CaptureInput)
+	var sshopen = false
+
+	MyApp.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEnter && !sshopen {
+			sshopen = true
+			MyApp.Suspend(func() {
+				go func() {
+					cmd := exec.Command("myapp", "connect", "devdb")
+					cmd.Stdout = MyApp
+					cmd.Stderr = MyApp
+					cmd.Stdin = MyApp
+					err := cmd.Run()
+					if err != nil {
+						fmt.Printf("error: %s \n", err)
+					}
+				}()
+			})
+			return event
+		}
+		// if MyApp.SshOpen {
+		// 	MyApp.Read([]byte{byte(event.Rune())})
+		// }
+		return event
+	})
 
 	return MyApp
 }
@@ -72,80 +95,79 @@ func (a *App) Write(p []byte) (int, error) {
 	a.SshWrites += string(p)
 	a.SshText.SetText(a.SshWrites, true)
 	a.SetFocus(a.SshText)
-	return len(p), nil
+	return 0, nil
 }
 
 func (a *App) Read(p []byte) (n int, err error) {
 	// a.SshWrites += string(p)
 	// a.SshText.SetText(a.SshWrites, true)
 	// a.SetFocus(a.SshText)
-	return len(p), nil
+	return 0, nil
 }
 func (a *App) Close() error {
 
 	return nil
 }
 
-func (a *App) CaptureInput(event *tcell.EventKey) *tcell.EventKey {
-
-	if event.Key() == tcell.KeyCtrlA {
-		// if ssh is not open, open
-		if !a.SshOpen {
-			a.SshOpen = true
-
-			a.Suspend(func() {
-				go func() {
-					err := a.cmd.Start()
-					if err != nil {
-						fmt.Println(err.Error())
-						return
-					}
-					a.cmd.Stdout = a
-					a.cmd.Stdin = a
-					a.cmd.Wait()
-					_, err = io.ReadAll(a)
-					if err != nil {
-						fmt.Println(err.Error())
-					}
-					// inpipe, err := a.cmd.StdinPipe()
-					// if err != nil {
-					// 	fmt.Println(err.Error())
-					// }
-					// a.InPipe = inpipe
-					// io.ReadAll(a.OutPipe)
-					// a.cmd.Stdout = a
-					// a.cmd.Wait()
-				}()
-			})
-		}
-		return event
-	}
-
-	// if event.Key() == tcell.KeyEnter && a.SshOpen {
-	// 	a.cmd.Wait()
-	// 	_, err := io.ReadAll(a)
-	// 	if err != nil {
-	// 		fmt.Println(err.Error())
-	// 	}
-	// 	a.Close()
-	// 	// a.Write(output)
-	// 	// a.
-	// }
-
-	if a.SshOpen {
-		// inpipe := a.cmd.Stdin
-		n, err := a.Read([]byte{byte(event.Rune())})
-		// n, err := a.Write()
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-		fmt.Printf("wrote %d bytes\n", n)
-		return event
-	}
-
-	return event
-}
-
+// func (a *App) CaptureInput(event *tcell.EventKey) *tcell.EventKey {
+//
+// 	if event.Key() == tcell.KeyCtrlA {
+// 		// if ssh is not open, open
+// 		if !a.SshOpen {
+// 			a.SshOpen = true
+//
+// 			a.Suspend(func() {
+// 				var wg sync.WaitGroup
+// 				wg.Add(1)
+// 				go func() {
+// 					defer wg.Done()
+// 					err := a.cmd.Start()
+// 					if err != nil {
+// 						fmt.Println(err.Error())
+// 						return
+// 					}
+// 					a.cmd.Stdout = a
+// 					a.cmd.Stdin = a
+// 					a.cmd.Stderr = a
+// 					a.cmd.Wait()
+// 				}()
+// 				wg.Wait()
+// 			})
+// 		}
+// 		return event
+// 	}
+//
+// 	// if event.Key() == tcell.KeyEnter && a.SshOpen {
+// 	// 	a.cmd.Wait()
+// 	// 	_, err := io.ReadAll(a)
+// 	// 	if err != nil {
+// 	// 		fmt.Println(err.Error())
+// 	// 	}
+// 	// 	a.Close()
+// 	// 	// a.Write(output)
+// 	// 	// a.
+// 	// }
+//
+// 	if a.SshOpen {
+// 		// a.Write(event.Rune())
+//
+// 		if event.Key() == tcell.KeyEnter {
+// 			fmt.Println(string(event.Rune()))
+// 			// inpipe := a.cmd.Stdin
+// 			_, err := a.Write([]byte{byte(event.Rune())})
+// 			if err != nil {
+// 				fmt.Println(err.Error())
+// 			}
+// 			a.cmd.Wait()
+// 		}
+//
+// 		// fmt.Printf("wrote %d bytes\n", n)
+// 		return event
+// 	}
+//
+// 	return event
+// }
+//
 /*
 
 	if event.Key() == tcell.KeyEnter && !a.SshOpen {
