@@ -59,7 +59,6 @@ func Create() *App {
 			MyApp.SshOpen = true
 			return event
 		}
-		MyApp.Write([]byte{byte(event.Rune())})
 		if MyApp.SshOpen {
 			MyApp.InPipe.Write([]byte{byte(event.Rune())})
 		}
