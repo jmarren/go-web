@@ -6,40 +6,122 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"time"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+	"golang.org/x/crypto/ssh"
 )
 
 type App struct {
 	*tview.Application
-	Layout    *MyGrid
-	InnerGrid *MyGrid
-	InnerLeft *MyGrid
-	SshWrites *strings.Builder
-	SshText   *tview.TextArea
-	SshOpen   bool
-	InPipe    io.WriteCloser
-	OutPipe   io.ReadCloser
-	cmd       *exec.Cmd
-	cmdStack  []byte
+	Layout      *MyGrid
+	InnerGrid   *MyGrid
+	InnerLeft   *MyGrid
+	SshWrites   *strings.Builder
+	SshText     *tview.TextArea
+	CurrentText string
+	SshOpen     bool
+	InPipe      io.WriteCloser
+	LogFile     string
+	OutPipe     io.Reader
+	cmd         *exec.Cmd
+	SshIn       *File
+	SshOut      *outFile
+	cmdStack    []byte
+	session     *ssh.Session
+	sshClient   *ssh.Client
+}
+
+type outFile struct {
+	name     string
+	textArea *tview.TextArea
+}
+
+func (f *outFile) Write(p []byte) (int, error) {
+	file, err := os.OpenFile(f.name, os.O_RDWR|os.O_CREATE|os.O_APPEND, os.ModeAppend)
+	defer file.Close()
+	if err != nil {
+		panic(fmt.Sprintf("error opening %s\n", f.name))
+	}
+	_, err = file.WriteString(string(p))
+	if err != nil {
+		panic(fmt.Sprintf("error writing to %s\n", f.name))
+	}
+
+	return len(p), nil
+}
+
+func newOutFile(name string) *outFile {
+	return &outFile{
+		name: name,
+	}
+}
+
+type File struct {
+	name string
+}
+
+// func (f *File) Read(p []byte) (int, error) {
+// 	file, err := os.Open(f.name)
+// 	defer file.Close()
+// 	if err != nil {
+// 		panic(fmt.Sprintf("error opening %s: %s\n", f.name, err))
+// 	}
+// 	n, err := file.Read(p)
+// 	if err != nil && err != io.EOF {
+// 		panic(fmt.Sprintf("error reading from %s: %s\n", f.name, err))
+// 	}
+// 	return n, nil
+//
+// }
+
+func (f *File) Write(p []byte) (int, error) {
+	file, err := os.OpenFile(f.name, os.O_RDWR|os.O_CREATE|os.O_APPEND, os.ModeAppend)
+	defer file.Close()
+	if err != nil {
+		panic(fmt.Sprintf("error opening %s\n", f.name))
+	}
+	_, err = file.WriteString(string(p))
+	if err != nil {
+		panic(fmt.Sprintf("error writing to %s\n", f.name))
+	}
+
+	return len(p), nil
+}
+
+func newFile(s string) *File {
+	return &File{
+		name: s,
+	}
 }
 
 func Create() *App {
+
+	// func OpenFile(name string, flag int, perm FileMode) (*File, error) {
+	// sshIn.
 	MyApp := &App{
 		Application: tview.NewApplication(),
 		Layout:      NewMyGrid(),
 		InnerGrid:   NewMyGrid(),
 		InnerLeft:   NewMyGrid(),
+		LogFile:     "app.log",
 		SshWrites:   new(strings.Builder),
 		SshOpen:     false,
+		SshIn:       newFile("sshIn.txt"),
+		SshOut:      newOutFile("sshOut.txt"),
 		cmd:         exec.Command("myapp", "connect", "devdb"),
+		CurrentText: "",
 	}
 
-	MyApp.cmd.Stdout = MyApp.SshWrites
+	MyApp.InitFiles()
+
+	MyApp.WriteLog("hi")
+
+	// MyApp.cmd.Stdout = MyApp.SshWrites
 
 	MyApp.CreateSshTextArea()
+
+	MyApp.SshOut.textArea = MyApp.SshText
 
 	MyApp.CreateInnerLeft()
 
@@ -52,55 +134,109 @@ func Create() *App {
 	var sshopen = false
 
 	MyApp.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyEnter && !sshopen {
+		if event.Key() == tcell.KeyCtrlA && !sshopen {
+			MyApp.SetClient()
 			sshopen = true
-			MyApp.Suspend(func() {
-
-				go func() {
-					cmd := MyApp.cmd
-					cmd.Stdout = MyApp.SshWrites
-					cmd.Stdin = os.Stdin
-					err := cmd.Run()
-					if err != nil {
-						fmt.Printf("error: %s \n", err)
-					}
-				}()
-				return
-			})
 			return event
 		}
-		if MyApp.SshOpen {
-			MyApp.Read([]byte{byte(event.Rune())})
+		if sshopen {
+			if event.Key() == tcell.KeyEnter {
+				MyApp.RunCmd()
+			} else {
+				MyApp.CurrentText += string(event.Rune())
+			}
 		}
 		return event
 	})
+	/*
+			if event.Key() == tcell.KeyCtrlA && !sshopen {
+				sshopen = true
+				MyApp.Suspend(func() {
+					go func() {
+						cmd := MyApp.cmd
+						var err error
+						cmd.Stdin = MyApp.SshIn
+						cmd.Stdout = MyApp.SshOut
 
-	MyApp.Tick()
+						err = cmd.Run()
+						MyApp.check(err, "running cmd ")
+					}()
+					return
+				})
+				return event
+			}
+
+			if sshopen {
+				MyApp.SshIn.Write([]byte{byte(event.Rune())})
+				// MyApp.SshOut.Write([]byte{byte(event.Rune())})
+			}
+			return event
+		})
+	*/
 
 	return MyApp
 }
 
-func (a *App) Tick() {
-	ticker := time.NewTicker(100 * time.Millisecond)
-	quit := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				text := a.SshWrites.String()
-				a.SshText.SetText(text, true)
-				a.SetFocus(a.SshText)
-			case <-quit:
-				ticker.Stop()
-				return
-			}
-		}
-	}()
+func (a *App) Write(p []byte) (int, error) {
+	a.CurrentText += string(p)
+	a.WriteLog(string(p))
+	// a.SshText.Replace(0, len(a.CurrentText), newText)
+	// a.CurrentText = newText
+	a.SshText.SetText(a.CurrentText, true)
+	a.SetFocus(a.SshText)
+	return 0, nil
 }
 
-func (a *App) Write(p []byte) (int, error) {
-	return len(p), nil
+func (a *App) check(e error, s string) {
+	if e != nil {
+		a.WriteLog(fmt.Sprintf("error %s:  %s", s, e))
+		panic(e)
+	}
 }
+
+func (a *App) InitFiles() {
+	a.ensureFile(a.SshIn.name)
+	a.ensureFile(a.SshOut.name)
+	a.ensureFile(a.LogFile)
+}
+
+func (a *App) ensureFile(s string) {
+	f, err := os.Create(s)
+	a.check(err, "creating "+s)
+	f.Close()
+	return
+}
+
+func (a *App) WriteSshIn(p []byte) {
+	sshIn, err := os.OpenFile(a.SshIn.name, os.O_APPEND|os.O_CREATE|os.O_RDWR, os.ModeAppend)
+	defer sshIn.Close()
+	a.check(err, "opening "+a.SshIn.name)
+	_, err = sshIn.Write(p)
+	a.check(err, "writing to "+a.SshIn.name)
+	a.CurrentText += string(p)
+	a.SshText.SetText(a.CurrentText, true)
+	a.SetFocus(a.SshText)
+
+	return
+}
+func (a *App) WriteLog(s string) {
+	f, err := os.OpenFile(a.LogFile, os.O_RDWR|os.O_CREATE|os.O_APPEND, os.ModeAppend)
+	defer f.Close()
+	if err != nil {
+		panic(fmt.Sprintf("error opening %s\n", a.LogFile))
+	}
+	_, err = f.WriteString(s)
+	if err != nil {
+		panic(fmt.Sprintf("error writing to %s\n", a.LogFile))
+	}
+
+	return
+}
+
+//
+// func (a *App) Write(p []byte) (int, error) {
+// 	return len(p), nil
+// }
 
 func (a *App) Read(p []byte) (n int, err error) {
 	return len(p), nil
@@ -379,4 +515,53 @@ func (a *App) Close() error {
 // 			}
 // 		}()
 // 	})
+// }
+
+// func (a *App) ReadSshIn() string {
+//
+// 	// f, err := os.Open(a.SshIn.name)
+// 	// defer f.Close()
+// 	// if err != nil {
+// 	// 	panic(fmt.Sprintf("error opening %s: %s\n", a.SshIn, err))
+// 	// }
+// 	//
+// 	// text, err := io.ReadAll(f)
+// 	// if err != nil {
+// 	// 	panic(fmt.Sprintf("error reading all from %s: %s\n", a.SshIn, err))
+// 	// }
+// 	//
+// 	// return string(text)
+// }
+// func (a *App) Tick() {
+// 	ticker := time.NewTicker(100 * time.Millisecond)
+// 	quit := make(chan struct{})
+// 	go func() {
+// 		for {
+// 			select {
+// 			case <-ticker.C:
+// 				a.ReadOutpipe()
+// 				return
+// 			case <-quit:
+// 				ticker.Stop()
+// 				return
+// 			}
+// 		}
+// 	}()
+// }
+//
+// func (a *App) ReadOutpipe() {
+// 	if a.OutPipe == nil {
+// 		return
+// 	}
+// 	defer a.OutPipe.Close()
+// 	data, err := io.ReadAll(a.OutPipe)
+// 	// var data []byte
+// 	// _, err := a.OutPipe.Read(data)
+// 	// a.WriteLog(string(data))
+// 	a.check(fmt.Errorf("reading from outpipe: %s\n", err), "")
+//
+// 	a.CurrentText += string(data)
+// 	a.SshText.SetText(a.CurrentText, true)
+// 	a.SetFocus(a.SshText)
+//
 // }

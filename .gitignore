@@ -49,3 +49,7 @@ web/public
 tmp
 
 cmd/scratch
+
+app.log
+sshIn.txt
+sshOut.txt
