@@ -6,7 +6,7 @@ import (
 
 func main() {
 
-	app := tui.Create()
+	app := tui.Test()
 	if err := app.Run(); err != nil {
 		panic(err)
 	}
