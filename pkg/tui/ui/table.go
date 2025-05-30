@@ -2,6 +2,7 @@ package ui
 
 import (
 	"github.com/gdamore/tcell/v2"
+	"github.com/jmarren/go-web/pkg/tui/instance"
 	"github.com/rivo/tview"
 )
 
@@ -13,6 +14,8 @@ type Table struct {
 	Title           string
 	BorderPadding   []int
 	Data            [][]string
+	Colnames        []string
+	instances       []*instance.Instance
 	selected        *Cell
 	middlewares     []func(event *tcell.EventKey) *tcell.EventKey
 }
@@ -30,15 +33,38 @@ func (t *Table) init() *GridPosition {
 	return t.Pos
 }
 
+func (t *Table) SetInstances(i []*instance.Instance) {
+	t.instances = i
+
+	data := [][]string{}
+	for _, instance := range i {
+		data = append(data, instance.TableRow())
+	}
+	t.Data = data
+	t.initCells()
+}
+
+func (t *Table) initHeader() {
+	for i, name := range t.Colnames {
+		cell := &tview.TableCell{
+			Text:            name,
+			Color:           tcell.ColorYellow,
+			Align:           tview.AlignCenter,
+			BackgroundColor: tcell.ColorBlack,
+		}
+		t.SetCell(0, i, cell)
+	}
+}
+
 func (t *Table) initCells() {
+	t.initHeader()
+
 	for i, row := range t.Data {
 		for column := range row {
 			color := tcell.ColorWhite
 			align := tview.AlignCenter
 
-			if i == 0 {
-				color = tcell.ColorYellow
-			} else if column == 0 {
+			if column == 0 {
 				align = tview.AlignLeft
 				color = tcell.ColorDarkCyan
 			}
@@ -56,9 +82,13 @@ func (t *Table) initCells() {
 				BackgroundColor: tcell.ColorBlack,
 			}
 
-			t.SetCell(i, column, cell)
+			t.SetCell(i+1, column, cell)
 		}
 	}
+}
+
+func (t *Table) SelectedInstance() *instance.Instance {
+	return t.instances[t.selected.row-1]
 }
 
 func (t *Table) updateInputCapture() {

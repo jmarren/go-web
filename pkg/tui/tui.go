@@ -2,12 +2,15 @@ package tui
 
 import (
 	"errors"
+	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/jmarren/go-web/pkg/tui/instance"
 	"github.com/jmarren/go-web/pkg/tui/logger"
 	"github.com/jmarren/go-web/pkg/tui/myssh"
 	"github.com/jmarren/go-web/pkg/tui/ui"
 	"github.com/rivo/tview"
+	"golang.org/x/crypto/ssh"
 )
 
 type Tui struct {
@@ -44,11 +47,13 @@ func (t *Tui) error(e ...error) {
 }
 
 func (t *Tui) activateTerminal() {
-	err := t.ssh.Connect("devdb", t.WriteSsh)
+	terminal := t.terminal()
+	instance := t.instanceTable().SelectedInstance()
+
+	err := t.ssh.Connect(instance.TermConfig, terminal.Writer())
 	if err != nil {
 		t.error(err)
 	}
-	terminal := t.terminal()
 	t.app.SetFocus(terminal)
 	terminal.SetInputCapture(t.captureTerminalInput)
 }
@@ -65,19 +70,31 @@ func (t *Tui) captureInstanceTableInput(event *tcell.EventKey) *tcell.EventKey {
 		t.activateTerminal()
 		return event
 	}
-
 	return event
 }
 
 func (t *Tui) InitUi() {
 	t.ui = ui.New()
-	t.instanceTable().ShiftMiddleware(t.captureInstanceTableInput)
+	instanceTable := t.instanceTable()
+	instanceTable.ShiftMiddleware(t.captureInstanceTableInput)
+	instanceTable.SetInstances(instances)
 }
 
-// func addMiddleware(p ui.EasyPrimitive, middleware func(event *tcell.EventKey) *tcell.EventKey) {
-// 	// capture := p.GetInpu
-// 	handler := p.InputHandler()
-//
-// }
-
-// func (t *Tui)
+var instances = []*instance.Instance{
+	&instance.Instance{
+		Name:      "devdb",
+		Online:    true,
+		StartTime: time.Now().Add(-1*time.Hour - 3*time.Minute),
+		TermConfig: &myssh.TermConfig{
+			Addr:    "127.0.0.1:200",
+			Network: "tcp",
+			ClientCfg: &ssh.ClientConfig{
+				User: "test",
+				Auth: []ssh.AuthMethod{
+					ssh.Password("test"),
+				},
+				HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+			},
+		},
+	},
+}

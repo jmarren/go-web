@@ -1,7 +1,10 @@
 package ui
 
 import (
+	"io"
+
 	"github.com/gdamore/tcell/v2"
+	"github.com/jmarren/go-web/pkg/utils"
 	"github.com/rivo/tview"
 )
 
@@ -20,6 +23,10 @@ func (t *TextArea) init() *GridPosition {
 		t.SetBorderColor(t.BorderColor)
 	}
 	return t.Pos
+}
+
+func (t *TextArea) Writer() io.Writer {
+	return utils.WriterFrom(t.AppendText)
 }
 
 func (t *TextArea) AppendText(p []byte) {

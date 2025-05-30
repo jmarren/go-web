@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io"
 
-	"github.com/jmarren/go-web/pkg/utils"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -42,7 +41,7 @@ func (s *SshService) setClient() error {
 	t := s.termConfig
 
 	// dial using termConfig
-	client, err := ssh.Dial(t.network, t.addr, t.clientCfg)
+	client, err := ssh.Dial(t.Network, t.Addr, t.ClientCfg)
 	if err != nil {
 		return s.error(ErrDialFailed, err)
 	}
@@ -96,26 +95,27 @@ func (s *SshService) PipeIn(p []byte) error {
 
 // this is where the service will use the provided instance name
 // to construct a termConfig which it will set as s.termConfig
-func (s *SshService) Connect(instance string, writeFunc func(p []byte)) error {
-	switch instance {
-	case "devdb":
-		s.termConfig = &TermConfig{
-			clientCfg: &ssh.ClientConfig{
-				User: "test",
-				Auth: []ssh.AuthMethod{
-					ssh.Password("test"),
-				},
-				HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-			},
-			network: "tcp",
-			addr:    "127.0.0.1:200",
-		}
-	}
+func (s *SshService) Connect(termConfig *TermConfig, writer io.Writer) error {
+	// switch instance {
+	// case "devdb":
+	// 	s.termConfig = &TermConfig{
+	// 		clientCfg: &ssh.ClientConfig{
+	// 			User: "test",
+	// 			Auth: []ssh.AuthMethod{
+	// 				ssh.Password("test"),
+	// 			},
+	// 			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	// 		},
+	// 		network: "tcp",
+	// 		addr:    "127.0.0.1:200",
+	// 	}
+	// }
 
-	s.writer = utils.WriterFrom(writeFunc)
-	if err := s.termConfig.Validate(); err != nil {
-		return err
-	}
+	s.termConfig = termConfig
+	s.writer = writer
+	// if err := s.termConfig.Validate(); err != nil {
+	// 	return err
+	// }
 
 	if err := s.setClient(); err != nil {
 		return s.error(ErrConn, err)

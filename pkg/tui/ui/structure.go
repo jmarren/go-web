@@ -103,12 +103,13 @@ var structureTwo = &Grid{
 											row: 1,
 											col: 1,
 										},
-										Data: [][]string{
-											{"instance", "status", "uptime", "playbooks"},
-											{"devdb", "online", "12m 15s", "db"},
-											{"devapp", "online", "10m 05s", "app"},
-											{"app", "offline", "--", "--"},
-											{"db", "offline", "--", "--"},
+										Colnames: []string{"instance", "status", "uptime", "playbooks"},
+										Data:     [][]string{
+											// {"instance", "status", "uptime", "playbooks"},
+											// {"devdb", "online", "12m 15s", "db"},
+											// {"devapp", "online", "10m 05s", "app"},
+											// {"app", "offline", "--", "--"},
+											// {"db", "offline", "--", "--"},
 										},
 										TreeNode: &TreeNode{
 											id: InstanceTable,
