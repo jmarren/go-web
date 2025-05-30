@@ -2,119 +2,82 @@ package tui
 
 import (
 	"errors"
-	"io"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/jmarren/go-web/pkg/tui/config"
 	"github.com/jmarren/go-web/pkg/tui/logger"
 	"github.com/jmarren/go-web/pkg/tui/myssh"
+	"github.com/jmarren/go-web/pkg/tui/ui"
 	"github.com/rivo/tview"
 )
 
-type App struct {
-	*tview.Application
-	Layout      *MyGrid
-	InnerGrid   *MyGrid
-	InnerLeft   *MyGrid
-	SshText     *tview.TextArea
-	CurrentText []byte
-	InPipe      io.WriteCloser
-	logger      *logger.Logger
-	sshService  *myssh.SshService
+type Tui struct {
+	ssh    *myssh.SshService
+	ui     *ui.Ui
+	logger *logger.Logger
+	app    *tview.Application
 }
 
-func Test() *tview.Application {
-	return config.Test()
-}
+func New() *Tui {
 
-func Create() *App {
-	app := &App{
-		Application: tview.NewApplication(),
-		Layout:      NewMyGrid(),
-		InnerGrid:   NewMyGrid(),
-		InnerLeft:   NewMyGrid(),
-		CurrentText: []byte{},
+	t := &Tui{
+		app: tview.NewApplication(),
 	}
 
 	logger, err := logger.New("app.log")
 	if err != nil {
-		app.error(err)
+		t.error(err)
 	}
-	app.logger = logger
+	t.logger = logger
 
-	app.sshService = myssh.New(newSshWriter(app.AppendSshText))
+	t.ssh = myssh.New()
 
-	app.createUi()
+	t.InitUi()
 
-	return app
+	instanceTable := t.instanceTable()
+
+	t.app.SetRoot(t.ui.Grid, true).SetFocus(instanceTable)
+	return t
 }
 
-func (a *App) captureInput(event *tcell.EventKey) *tcell.EventKey {
-	if event.Key() == tcell.KeyCtrlA && !a.sshService.Active {
-		err := a.sshService.Connect("devdb")
-		if err != nil {
-			a.error(err)
-		}
-		return event
-	}
+func (t *Tui) error(e ...error) {
+	panic(errors.Join(e...))
+}
 
-	if a.sshService.Active {
-		a.sshService.PipeIn([]byte{byte(event.Rune())})
+func (t *Tui) activateTerminal() {
+	err := t.ssh.Connect("devdb", t.WriteSsh)
+	if err != nil {
+		t.error(err)
+	}
+	terminal := t.terminal()
+	t.app.SetFocus(terminal)
+	terminal.SetInputCapture(t.captureTerminalInput)
+}
+
+func (t *Tui) captureTerminalInput(event *tcell.EventKey) *tcell.EventKey {
+	if t.ssh.Active {
+		t.ssh.PipeIn([]byte{byte(event.Rune())})
+	}
+	return event
+}
+
+func (t *Tui) captureInstanceTableInput(event *tcell.EventKey) *tcell.EventKey {
+	if event.Key() == tcell.KeyCtrlA && !t.ssh.Active {
+		t.activateTerminal()
+		return event
 	}
 
 	return event
 }
 
-func (a *App) createUi() {
-	a.CreateSshTextArea()
-	a.CreateInnerLeft()
-	a.CreateInnerGrid()
-	a.CreateLayout()
-	a.SetRoot(a.Layout, true).SetFocus(a.Layout)
-	a.SetInputCapture(a.captureInput)
+func (t *Tui) InitUi() {
+	t.ui = ui.New()
+	t.instanceTable().ShiftMiddleware(t.captureInstanceTableInput)
 }
 
-func (a *App) error(e ...error) {
-	panic(errors.Join(e...))
-}
+// func addMiddleware(p ui.EasyPrimitive, middleware func(event *tcell.EventKey) *tcell.EventKey) {
+// 	// capture := p.GetInpu
+// 	handler := p.InputHandler()
+//
+// }
 
-type SshWriter struct {
-	writeFunc func(p []byte)
-}
-
-func (s *SshWriter) Write(p []byte) (int, error) {
-	s.writeFunc(p)
-	return len(p), nil
-}
-
-func newSshWriter(writeFunc func(p []byte)) io.Writer {
-	return &SshWriter{
-		writeFunc: writeFunc,
-	}
-}
-
-func (a *App) AppendSshText(p []byte) {
-
-	// append p to CurrentText
-	a.CurrentText = append(a.CurrentText, p...)
-
-	// if CurrentText is longer than 500,
-	// take only the last 500 bytes
-	length := len(a.CurrentText)
-	if length > 500 {
-		a.CurrentText = a.CurrentText[length-500:]
-	}
-	// set textarea
-	a.SshText.SetText(string(a.CurrentText), true)
-	a.SetFocus(a.SshText)
-}
-
-func (a *App) Write(p []byte) (int, error) {
-	a.AppendSshText(p)
-	return len(p), nil
-}
-
-func (a *App) Read(p []byte) (n int, err error) {
-	a.AppendSshText(p)
-	return len(p), nil
-}
+// func (t *Tui)

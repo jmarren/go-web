@@ -21,11 +21,10 @@ type GridPosition struct {
 	Focus                                                      bool
 }
 
-// func (g *Grid) AddItem(p Primitive, row, column, rowSpan, colSpan, minGridHeight, minGridWidth int, focus bool) *Grid {
-
 type EasyPrimitive interface {
 	tview.Primitive
 	init() *GridPosition
+	GetName() string
 }
 
 type ConfigType struct {
@@ -48,8 +47,8 @@ type Grid struct {
 	Items           []EasyPrimitive
 }
 
-type LayoutConfig struct {
-	Grid *Grid
+func (g *Grid) GetName() string {
+	return g.Name
 }
 
 func (g *Grid) init() *GridPosition {
@@ -70,9 +69,35 @@ func (g *Grid) init() *GridPosition {
 
 type Box struct {
 	*tview.Box
+	Name            string
 	BackgroundColor tcell.Color
 	Pos             *GridPosition
 	BorderColor     tcell.Color
+}
+
+func (b *Box) GetName() string {
+	return b.Name
+}
+
+type TextArea struct {
+	*tview.TextArea
+	Name            string
+	BackgroundColor tcell.Color
+	Pos             *GridPosition
+	BorderColor     tcell.Color
+}
+
+func (t *TextArea) GetName() string {
+	return t.Name
+}
+
+func (t *TextArea) init() *GridPosition {
+	t.SetBackgroundColor(t.BackgroundColor)
+	if t.BorderColor != 0 {
+		t.SetBorder(true)
+		t.SetBorderColor(t.BorderColor)
+	}
+	return t.Pos
 }
 
 func (b *Box) init() *GridPosition {
@@ -97,12 +122,13 @@ var Config = &ConfigType{
 			},
 			Items: []EasyPrimitive{
 				&Grid{
-					Grid:        tview.NewGrid(),
-					Name:        "InnerLayout",
-					Rows:        []int{},
-					Columns:     []int{-1, -10, -1},
-					Title:       " Go Web! ",
-					BorderColor: tcell.ColorWhite,
+					Grid:            tview.NewGrid(),
+					Name:            "InnerLayout",
+					Rows:            []int{},
+					Columns:         []int{-1, -1},
+					Title:           " Go Web! ",
+					BorderColor:     tcell.ColorWhite,
+					BackgroundColor: tcell.ColorBlack,
 					Pos: &GridPosition{
 						Row:     1,
 						Column:  1,
@@ -119,8 +145,8 @@ var Config = &ConfigType{
 							Title:           "InnerLeft",
 							BackgroundColor: tcell.ColorBlack,
 							Pos: &GridPosition{
-								Row:           1,
-								Column:        1,
+								Row:           0,
+								Column:        0,
 								RowSpan:       1,
 								ColSpan:       1,
 								MinGridWidth:  0,
@@ -142,6 +168,46 @@ var Config = &ConfigType{
 										Focus:         true,
 									},
 								},
+								&Box{
+									Box:             tview.NewBox(),
+									BackgroundColor: tcell.ColorBlack,
+									Pos: &GridPosition{
+										Row:     0,
+										Column:  0,
+										RowSpan: 2,
+										ColSpan: 1,
+									},
+								},
+								&TextArea{
+									TextArea:        tview.NewTextArea(),
+									BackgroundColor: tcell.ColorAliceBlue,
+									BorderColor:     tcell.ColorRed,
+									Pos: &GridPosition{
+										Row:     0,
+										Column:  1,
+										RowSpan: 1,
+										ColSpan: 1,
+									},
+								},
+								&Table{
+									Table:           tview.NewTable(),
+									BackgroundColor: tcell.ColorBlack,
+									Title:           " instances ",
+									Data: [][]string{
+										{"instance", "status", "uptime", "playbooks"},
+										{"devdb", "online", "12m 15s", "db"},
+										{"devapp", "online", "10m 05s", "app"},
+										{"app", "offline", "--", "--"},
+										{"db", "offline", "--", "--"},
+									},
+									Pos: &GridPosition{
+										Row:     1,
+										Column:  1,
+										RowSpan: 1,
+										ColSpan: 1,
+										Focus:   true,
+									},
+								},
 							},
 						},
 					},
@@ -151,58 +217,148 @@ var Config = &ConfigType{
 	},
 }
 
-// Inner: &InnerGridConfig{
-// 	Grid: &Grid{
-// 		Rows:        []int{},
-// 		Columns:     []int{-1, -10, -1},
-// 		Title:       " Go Web! ",
-// 		BorderColor: tcell.ColorWhite,
-// 	},
-// 	Left: &InnerLeftConfig{
-// 		Grid: &Grid{
-// 			Rows:            []int{-1, -1},
-// 			Columns:         []int{-1, -50, -1},
-// 			BackgroundColor: tcell.ColorBlack,
-// 		},
-// 	},
-// },
+type Cell struct {
+	row int
+	col int
+}
 
-// type ConfigT struct {
-// 	Ui
-// }
+func (c *Cell) MoveLeft() {
+	c.col--
+}
 
-type GridT struct {
-	Rows            []int
-	Columns         []int
-	Title           string
-	BorderColor     tcell.Color
+func (c *Cell) MoveRight() {
+	c.col++
+}
+
+func (c *Cell) MoveDown() {
+	c.row++
+}
+
+func (c *Cell) MoveUp() {
+	c.row--
+}
+
+type Table struct {
+	*tview.Table
+	Name            string
 	BackgroundColor tcell.Color
-	items           []tview.Primitive
+	BorderColor     tcell.Color
+	Title           string
+	BorderPadding   []int
+	Data            [][]string
+	Selected        *Cell
+	Pos             *GridPosition
 }
 
-type Node struct {
-	p    tview.Primitive
-	attr any
-
-	// grid tview.Grid
+func (t *Table) GetName() string {
+	return t.Name
 }
 
-// InnerLeft.SetRows(-1, -1)
-// InnerLeft.SetColumns(-1, -50, -1)
-// InnerLeft.SetBackgroundColor(tcell.ColorBlack)
+func (t *Table) init() *GridPosition {
+	t.SetBackgroundColor(t.BackgroundColor)
+	if t.BorderColor != 0 {
+		t.SetBorder(true)
+		t.SetBorderColor(t.BorderColor)
+	}
+	t.SetTitle(t.Title)
+	t.initCells()
+	return t.Pos
+}
+
+func (t *Table) initCells() {
+	for i, row := range t.Data {
+		for column := range row {
+			color := tcell.ColorWhite
+			align := tview.AlignCenter
+
+			if i == 0 {
+				color = tcell.ColorYellow
+			} else if column == 0 {
+				align = tview.AlignLeft
+				color = tcell.ColorDarkCyan
+			}
+
+			if row[column] == "online" {
+				color = tcell.ColorGreen
+			} else if row[column] == "offline" {
+				color = tcell.ColorRed
+			}
+
+			cell := &tview.TableCell{
+				Text:            row[column],
+				Color:           color,
+				Align:           align,
+				BackgroundColor: tcell.ColorBlack,
+			}
+
+			t.SetCell(i, column, cell)
+		}
+	}
+
+}
+
+var rows = [][]string{
+	{"instance", "status", "uptime", "playbooks"},
+	{"devdb", "online", "12m 15s", "db"},
+	{"devapp", "online", "10m 05s", "app"},
+	{"app", "offline", "--", "--"},
+	{"db", "offline", "--", "--"},
+}
+
+// func MakeTable() *tview.Table {
+// 	Table := tview.NewTable()
+// 	tbl := &MyTable{
+// 		Table: Table,
+// 		data:  rows,
+// 		selected: &Cell{
+// 			row: 1,
+// 			col: 1,
+// 		},
+// 	}
 //
-// var Config = struct {
-// 	Ui struct {
-// 		Layout struct {
-// 			rows    []int
-// 			columns []int
+// 	Table.SetBackgroundColor(tcell.ColorBlack)
+// 	Table.SetBorder(true).SetBorderColor(tcell.ColorWhite).SetTitle(" Instances ")
+// 	Table.SetBorderPadding(1, 1, 2, 2)
+// 	Table.SetSelectionChangedFunc(func(row, column int) {
+// 		fmt.Printf("row %d col %d selected\n", row, column)
+// 	})
+//
+// 	Table.SetSelectedFunc(func(row, column int) {
+// 		fmt.Printf("row %d col %d selected\n", row, column)
+// 	})
+// 	for i, row := range rows {
+// 		for column := range row {
+// 			color := tcell.ColorWhite
+// 			align := tview.AlignCenter
+//
+// 			if i == 0 {
+// 				color = tcell.ColorYellow
+// 			} else if column == 0 {
+// 				align = tview.AlignLeft
+// 				color = tcell.ColorDarkCyan
+// 			}
+//
+// 			if row[column] == "online" {
+// 				color = tcell.ColorGreen
+// 			} else if row[column] == "offline" {
+// 				color = tcell.ColorRed
+// 			}
+//
+// 			cell := &tview.TableCell{
+// 				Text:            row[column],
+// 				Color:           color,
+// 				Align:           align,
+// 				BackgroundColor: tcell.ColorBlack,
+// 			}
+//
+// 			Table.SetCell(i, column, cell)
 // 		}
 // 	}
-// }{
-// 	Ui: struct {
-// 		Layout: struct{
-// 			rows:    []int{-1, -10, -1},
-// 			columns: []int{-1, -10, -1},
-// 		},
-// 	},
+//
+// 	Table.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+// 		tbl.HandleKey(event)
+// 		return event
+// 	})
+//
+// 	return Table
 // }

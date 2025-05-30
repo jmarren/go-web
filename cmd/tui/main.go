@@ -5,9 +5,10 @@ import (
 )
 
 func main() {
+	tui.Run()
 
-	app := tui.Test()
-	if err := app.Run(); err != nil {
-		panic(err)
-	}
+	// app := tui.Test()
+	// if err := app.Run(); err != nil {
+	// 	panic(err)
+	// }
 }

@@ -2,8 +2,10 @@ package myssh
 
 import (
 	"errors"
-	"golang.org/x/crypto/ssh"
 	"io"
+
+	"github.com/jmarren/go-web/pkg/utils"
+	"golang.org/x/crypto/ssh"
 )
 
 var modes = ssh.TerminalModes{
@@ -21,10 +23,8 @@ type SshService struct {
 	writer     io.Writer
 }
 
-func New(writer io.Writer) *SshService {
-	return &SshService{
-		writer: writer,
-	}
+func New() *SshService {
+	return &SshService{}
 }
 
 func (s *SshService) error(e ...error) error {
@@ -96,7 +96,7 @@ func (s *SshService) PipeIn(p []byte) error {
 
 // this is where the service will use the provided instance name
 // to construct a termConfig which it will set as s.termConfig
-func (s *SshService) Connect(instance string) error {
+func (s *SshService) Connect(instance string, writeFunc func(p []byte)) error {
 	switch instance {
 	case "devdb":
 		s.termConfig = &TermConfig{
@@ -112,6 +112,7 @@ func (s *SshService) Connect(instance string) error {
 		}
 	}
 
+	s.writer = utils.WriterFrom(writeFunc)
 	if err := s.termConfig.Validate(); err != nil {
 		return err
 	}
