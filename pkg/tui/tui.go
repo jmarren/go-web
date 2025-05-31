@@ -50,15 +50,11 @@ func (t *Tui) error(e ...error) {
 	panic(errors.Join(e...))
 }
 
-func (t *Tui) Update() {
-	t.app.Draw()
-}
-
 func (t *Tui) activateTerminal() {
 	terminal := t.terminal()
 	instance := t.instanceTable().SelectedInstance()
 
-	err := t.ssh.Connect(instance.TermConfig, terminal.Writer(t.Update))
+	err := t.ssh.Connect(instance.TermConfig, terminal.Writer(t.app))
 	if err != nil {
 		t.error(err)
 	}
@@ -70,6 +66,10 @@ func (t *Tui) captureTerminalInput(event *tcell.EventKey) *tcell.EventKey {
 	if t.ssh.Active {
 		t.ssh.PipeIn([]byte{byte(event.Rune())})
 	}
+	if event.Key() == tcell.KeyEnter {
+		t.terminal().AppendText([]byte{'\n'})
+	}
+
 	return event
 }
 

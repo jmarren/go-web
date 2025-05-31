@@ -25,10 +25,12 @@ func (t *TextArea) init() *GridPosition {
 	return t.Pos
 }
 
-func (t *TextArea) Writer(drawFunc func()) io.Writer {
+// drawFunc is used to update the screen after each write
+func (t *TextArea) Writer(app *tview.Application) io.Writer {
 	return utils.WriterFrom(func(p []byte) {
-		t.AppendText(p)
-		drawFunc()
+		app.QueueUpdateDraw(func() {
+			t.AppendText(p)
+		})
 	})
 }
 
@@ -36,11 +38,11 @@ func (t *TextArea) AppendText(p []byte) {
 	// append p to CurrentText
 	t.Text = append(t.Text, p...)
 
-	// if CurrentText is longer than 500,
-	// take only the last 500 bytes
+	// if CurrentText is longer than 1000,
+	// take only the last 1000 bytes
 	length := len(t.Text)
-	if length > 500 {
-		t.Text = t.Text[length-500:]
+	if length > 1000 {
+		t.Text = t.Text[length-1000:]
 	}
 	length = len(t.Text)
 
