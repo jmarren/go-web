@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/jmarren/go-web/pkg/tui/cache"
 	"github.com/jmarren/go-web/pkg/tui/instance"
 	"github.com/jmarren/go-web/pkg/tui/logger"
 	"github.com/jmarren/go-web/pkg/tui/myssh"
@@ -21,6 +22,9 @@ type Tui struct {
 }
 
 func New() *Tui {
+
+	cache := &cache.Cache{}
+	cache.Connect()
 
 	t := &Tui{
 		app: tview.NewApplication(),
@@ -46,11 +50,15 @@ func (t *Tui) error(e ...error) {
 	panic(errors.Join(e...))
 }
 
+func (t *Tui) Update() {
+	t.app.Draw()
+}
+
 func (t *Tui) activateTerminal() {
 	terminal := t.terminal()
 	instance := t.instanceTable().SelectedInstance()
 
-	err := t.ssh.Connect(instance.TermConfig, terminal.Writer())
+	err := t.ssh.Connect(instance.TermConfig, terminal.Writer(t.Update))
 	if err != nil {
 		t.error(err)
 	}

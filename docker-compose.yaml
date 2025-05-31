@@ -19,8 +19,18 @@ services:
     # volumes:
     #   - ./deploy/keys/key.pub:/etc/ssh/key.pub
 
+  tui_cache:
+    image: valkey/valkey
+    ports:
+      - 300:6379
+     
 
-
+  # tui_cache:
+  #   build: 
+  #     dockerfile: ./pkg/tui/docker/redis.Dockerfile
+  #   ports:
+  #     - 300:6379
+  #
     # command: "sudo apt-get install openssh-server"
     # entrypoint: "/home/init.sh"
     # entrypoint: "tail -f /dev/null"

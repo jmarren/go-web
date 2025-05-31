@@ -25,8 +25,11 @@ func (t *TextArea) init() *GridPosition {
 	return t.Pos
 }
 
-func (t *TextArea) Writer() io.Writer {
-	return utils.WriterFrom(t.AppendText)
+func (t *TextArea) Writer(drawFunc func()) io.Writer {
+	return utils.WriterFrom(func(p []byte) {
+		t.AppendText(p)
+		drawFunc()
+	})
 }
 
 func (t *TextArea) AppendText(p []byte) {
@@ -49,6 +52,7 @@ func (t *TextArea) AppendText(p []byte) {
 
 	// set textarea
 	t.SetText(string(t.Text), true)
+
 }
 
 func isPrompt(b []byte) bool {
